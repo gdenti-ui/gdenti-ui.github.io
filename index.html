@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Coffe-o-matric</title>
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+            --bg: #1a1a2e;
+            --surface: #16213e;
+            --card: #0f3460;
+            --accent: #e94560;
+            --accent-hover: #ff6b81;
+            --text: #eaeaea;
+            --text-muted: #a0a0b8;
+            --success: #2ecc71;
+            --coffee: #d4a574;
+            --water: #74b9ff;
+            --beans: #a0522d;
+            --radius: 16px;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100dvh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        /* Header */
+        .header {
+            width: 100%;
+            max-width: 480px;
+            text-align: center;
+            padding: 2rem 1rem 1rem;
+        }
+
+        .header img {
+            width: 120px;
+            height: 120px;
+            object-fit: contain;
+            border-radius: 50%;
+            margin-bottom: 0.5rem;
+            filter: drop-shadow(0 4px 12px rgba(233, 69, 96, 0.3));
+        }
+
+        .header h1 {
+            font-size: 1.6rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--coffee), var(--accent));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .header p {
+            color: var(--text-muted);
+            font-size: 0.85rem;
+            margin-top: 0.25rem;
+        }
+
+        /* Main container */
+        .container {
+            width: 100%;
+            max-width: 480px;
+            padding: 0 1rem 2rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        /* Action buttons */
+        .action-btn {
+            position: relative;
+            width: 100%;
+            padding: 1.4rem 1.5rem;
+            border: none;
+            border-radius: var(--radius);
+            font-size: 1.2rem;
+            font-weight: 600;
+            cursor: pointer;
+            color: #fff;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            transition: transform 0.15s, box-shadow 0.15s;
+            overflow: hidden;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .action-btn:active { transform: scale(0.97); }
+        .action-btn:hover { box-shadow: 0 8px 24px rgba(0,0,0,0.3); }
+
+        .action-btn .icon { font-size: 1.8rem; flex-shrink: 0; }
+        .action-btn .label { flex: 1; text-align: left; }
+
+        .btn-coffee {
+            background: linear-gradient(135deg, #6f4e37, #a0522d);
+        }
+        .btn-water {
+            background: linear-gradient(135deg, #2980b9, #3498db);
+        }
+        .btn-beans {
+            background: linear-gradient(135deg, #8B4513, #a0522d);
+        }
+
+        /* Spinner overlay on button */
+        .action-btn .spinner {
+            position: absolute;
+            inset: 0;
+            background: rgba(0,0,0,0.4);
+            display: none;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .action-btn.loading .spinner { display: flex; }
+        .action-btn.loading { pointer-events: none; }
+
+        .spinner-circle {
+            width: 28px;
+            height: 28px;
+            border: 3px solid rgba(255,255,255,0.3);
+            border-top-color: #fff;
+            border-radius: 50%;
+            animation: spin 0.6s linear infinite;
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* Coffee choice modal */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.6);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+            backdrop-filter: blur(4px);
+            padding: 1rem;
+        }
+
+        .modal-overlay.active { display: flex; }
+
+        .modal {
+            background: var(--surface);
+            border-radius: var(--radius);
+            padding: 2rem;
+            width: 100%;
+            max-width: 360px;
+            text-align: center;
+            box-shadow: 0 16px 48px rgba(0,0,0,0.4);
+            animation: modalIn 0.2s ease-out;
+        }
+
+        @keyframes modalIn {
+            from { opacity: 0; transform: scale(0.9) translateY(20px); }
+            to { opacity: 1; transform: scale(1) translateY(0); }
+        }
+
+        .modal h2 {
+            font-size: 1.3rem;
+            margin-bottom: 1.5rem;
+            color: var(--coffee);
+        }
+
+        .modal-choices {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .choice-btn {
+            flex: 1;
+            padding: 1.2rem 1rem;
+            border: 2px solid var(--coffee);
+            background: transparent;
+            border-radius: 12px;
+            color: var(--text);
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .choice-btn:hover, .choice-btn:focus {
+            background: var(--coffee);
+            color: var(--bg);
+        }
+
+        .choice-btn:active { transform: scale(0.95); }
+        .choice-btn .choice-icon { font-size: 2rem; display: block; margin-bottom: 0.4rem; }
+
+        /* Toast */
+        .toast {
+            position: fixed;
+            bottom: 2rem;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background: var(--success);
+            color: #fff;
+            padding: 0.8rem 1.6rem;
+            border-radius: 50px;
+            font-weight: 600;
+            font-size: 1rem;
+            box-shadow: 0 4px 16px rgba(46, 204, 113, 0.4);
+            transition: transform 0.3s ease;
+            z-index: 200;
+            white-space: nowrap;
+        }
+
+        .toast.visible {
+            transform: translateX(-50%) translateY(0);
+        }
+
+        /* Offline queue badge */
+        .queue-badge {
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            background: var(--accent);
+            color: #fff;
+            padding: 0.4rem 0.8rem;
+            border-radius: 50px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            display: none;
+            z-index: 50;
+        }
+
+        .queue-badge.visible { display: block; }
+
+        /* Status bar */
+        .status-bar {
+            width: 100%;
+            max-width: 480px;
+            padding: 0 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--success);
+        }
+
+        .status-dot.offline { background: var(--accent); }
+
+        /* Today's stats */
+        .stats {
+            width: 100%;
+            max-width: 480px;
+            padding: 0 1rem;
+            margin-top: 0.5rem;
+        }
+
+        .stats-card {
+            background: var(--surface);
+            border-radius: var(--radius);
+            padding: 1rem 1.2rem;
+            display: flex;
+            justify-content: space-around;
+            text-align: center;
+        }
+
+        .stat-item .stat-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+        }
+
+        .stat-item .stat-label {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .stat-coffee .stat-value { color: var(--coffee); }
+        .stat-water .stat-value { color: var(--water); }
+        .stat-beans .stat-value { color: var(--beans); }
+    </style>
+</head>
+<body>
+
+    <!-- Offline queue badge -->
+    <div class="queue-badge" id="queueBadge">
+        <span id="queueCount">0</span> in coda
+    </div>
+
+    <!-- Header -->
+    <div class="header">
+        <img src="images/logo.png" alt="Coffe-o-matric Logo">
+        <h1>Coffe-o-matric</h1>
+        <p>Monitora il tuo caffè</p>
+    </div>
+
+    <!-- Connection status -->
+    <div class="status-bar">
+        <div class="status-indicator">
+            <div class="status-dot" id="statusDot"></div>
+            <span id="statusText">Online</span>
+        </div>
+    </div>
+
+    <!-- Action buttons -->
+    <div class="container">
+        <button class="action-btn btn-coffee" id="btnCoffee">
+            <span class="icon">☕</span>
+            <span class="label">Caffè Fatto</span>
+            <div class="spinner"><div class="spinner-circle"></div></div>
+        </button>
+
+        <button class="action-btn btn-water" id="btnWater">
+            <span class="icon">💧</span>
+            <span class="label">Aggiunta Acqua</span>
+            <div class="spinner"><div class="spinner-circle"></div></div>
+        </button>
+
+        <button class="action-btn btn-beans" id="btnBeans">
+            <span class="icon">🫘</span>
+            <span class="label">Aggiunta Chicchi</span>
+            <div class="spinner"><div class="spinner-circle"></div></div>
+        </button>
+    </div>
+
+    <!-- Today's stats -->
+    <div class="stats">
+        <div class="stats-card">
+            <div class="stat-item stat-coffee">
+                <div class="stat-value" id="statCoffee">0</div>
+                <div class="stat-label">Caffè oggi</div>
+            </div>
+            <div class="stat-item stat-water">
+                <div class="stat-value" id="statWater">0</div>
+                <div class="stat-label">Acqua oggi</div>
+            </div>
+            <div class="stat-item stat-beans">
+                <div class="stat-value" id="statBeans">0</div>
+                <div class="stat-label">Chicchi oggi</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Coffee choice modal -->
+    <div class="modal-overlay" id="coffeeModal">
+        <div class="modal">
+            <h2>Quanti caffè?</h2>
+            <div class="modal-choices">
+                <button class="choice-btn" id="choiceSingle">
+                    <span class="choice-icon">☕</span>
+                    Singolo
+                </button>
+                <button class="choice-btn" id="choiceDouble">
+                    <span class="choice-icon">☕☕</span>
+                    Doppio
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div class="toast" id="toast">Registrato!</div>
+
+    <script>
+        // ============================================================
+        // CONFIG: Inserisci qui l'URL della tua Google Apps Script Web App
+        // ============================================================
+        const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbw7KLDWrnbtBSku-4RKbd5p68jnl9Dc2S1oD8zx9bUGBaFuG8joO-2ECrmDtE758ueAtA/exec';
+
+        // ============================================================
+        // DOM refs
+        // ============================================================
+        const btnCoffee = document.getElementById('btnCoffee');
+        const btnWater = document.getElementById('btnWater');
+        const btnBeans = document.getElementById('btnBeans');
+        const coffeeModal = document.getElementById('coffeeModal');
+        const choiceSingle = document.getElementById('choiceSingle');
+        const choiceDouble = document.getElementById('choiceDouble');
+        const toast = document.getElementById('toast');
+        const queueBadge = document.getElementById('queueBadge');
+        const queueCount = document.getElementById('queueCount');
+        const statusDot = document.getElementById('statusDot');
+        const statusText = document.getElementById('statusText');
+        const statCoffee = document.getElementById('statCoffee');
+        const statWater = document.getElementById('statWater');
+        const statBeans = document.getElementById('statBeans');
+
+        // ============================================================
+        // Daily stats (localStorage)
+        // ============================================================
+        function todayKey() {
+            return 'stats_' + new Date().toISOString().slice(0, 10);
+        }
+
+        function getStats() {
+            const raw = localStorage.getItem(todayKey());
+            return raw ? JSON.parse(raw) : { coffee: 0, water: 0, beans: 0 };
+        }
+
+        function saveStats(stats) {
+            localStorage.setItem(todayKey(), JSON.stringify(stats));
+        }
+
+        function incrementStat(type, amount) {
+            const stats = getStats();
+            stats[type] = (stats[type] || 0) + amount;
+            saveStats(stats);
+            renderStats();
+        }
+
+        function renderStats() {
+            const s = getStats();
+            statCoffee.textContent = s.coffee || 0;
+            statWater.textContent = s.water || 0;
+            statBeans.textContent = s.beans || 0;
+        }
+
+        // ============================================================
+        // Offline queue (localStorage)
+        // ============================================================
+        const QUEUE_KEY = 'coffeomatic_queue';
+
+        function getQueue() {
+            const raw = localStorage.getItem(QUEUE_KEY);
+            return raw ? JSON.parse(raw) : [];
+        }
+
+        function saveQueue(queue) {
+            localStorage.setItem(QUEUE_KEY, JSON.stringify(queue));
+            updateQueueBadge();
+        }
+
+        function enqueue(entry) {
+            const queue = getQueue();
+            queue.push(entry);
+            saveQueue(queue);
+        }
+
+        function updateQueueBadge() {
+            const queue = getQueue();
+            if (queue.length > 0) {
+                queueCount.textContent = queue.length;
+                queueBadge.classList.add('visible');
+            } else {
+                queueBadge.classList.remove('visible');
+            }
+        }
+
+        // ============================================================
+        // Network status
+        // ============================================================
+        function updateOnlineStatus() {
+            if (navigator.onLine) {
+                statusDot.classList.remove('offline');
+                statusText.textContent = 'Online';
+                flushQueue();
+            } else {
+                statusDot.classList.add('offline');
+                statusText.textContent = 'Offline — i dati verranno inviati dopo';
+            }
+        }
+
+        window.addEventListener('online', updateOnlineStatus);
+        window.addEventListener('offline', updateOnlineStatus);
+
+        // ============================================================
+        // Send data to Google Apps Script
+        // ============================================================
+        async function sendData(action, timestamp) {
+            const ts = timestamp || new Date().toLocaleString('it-IT');
+            const payload = { azione: action, timestamp: ts };
+
+            if (!navigator.onLine || APPS_SCRIPT_URL === 'YOUR_GOOGLE_APPS_SCRIPT_WEB_APP_URL') {
+                enqueue(payload);
+                return;
+            }
+
+            try {
+                const res = await fetch(APPS_SCRIPT_URL, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload),
+                });
+                // no-cors returns opaque response, so we assume success
+            } catch (err) {
+                console.warn('Invio fallito, salvato in coda locale:', err);
+                enqueue(payload);
+            }
+        }
+
+        // ============================================================
+        // Flush offline queue
+        // ============================================================
+        async function flushQueue() {
+            const queue = getQueue();
+            if (queue.length === 0) return;
+
+            const remaining = [];
+            for (const entry of queue) {
+                try {
+                    await fetch(APPS_SCRIPT_URL, {
+                        method: 'POST',
+                        mode: 'no-cors',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(entry),
+                    });
+                } catch {
+                    remaining.push(entry);
+                }
+            }
+            saveQueue(remaining);
+        }
+
+        // ============================================================
+        // Toast
+        // ============================================================
+        let toastTimer;
+        function showToast(message) {
+            toast.textContent = message || 'Registrato!';
+            toast.classList.add('visible');
+            clearTimeout(toastTimer);
+            toastTimer = setTimeout(() => toast.classList.remove('visible'), 2000);
+        }
+
+        // ============================================================
+        // Button loading animation
+        // ============================================================
+        function setLoading(btn, loading) {
+            if (loading) {
+                btn.classList.add('loading');
+            } else {
+                btn.classList.remove('loading');
+            }
+        }
+
+        async function handleAction(btn, action, statType, statAmount) {
+            setLoading(btn, true);
+            await sendData(action);
+            incrementStat(statType, statAmount || 1);
+            setLoading(btn, false);
+            showToast('Registrato!');
+        }
+
+        // ============================================================
+        // Event listeners
+        // ============================================================
+
+        // Coffee button -> open modal
+        btnCoffee.addEventListener('click', () => {
+            coffeeModal.classList.add('active');
+        });
+
+        // Modal choices
+        choiceSingle.addEventListener('click', () => {
+            coffeeModal.classList.remove('active');
+            handleAction(btnCoffee, 'Caffè Singolo', 'coffee', 1);
+        });
+
+        choiceDouble.addEventListener('click', () => {
+            coffeeModal.classList.remove('active');
+            handleAction(btnCoffee, 'Caffè Doppio', 'coffee', 2);
+        });
+
+        // Close modal on overlay click
+        coffeeModal.addEventListener('click', (e) => {
+            if (e.target === coffeeModal) coffeeModal.classList.remove('active');
+        });
+
+        // Water button
+        btnWater.addEventListener('click', () => {
+            handleAction(btnWater, 'Aggiunta Acqua', 'water', 1);
+        });
+
+        // Beans button
+        btnBeans.addEventListener('click', () => {
+            handleAction(btnBeans, 'Aggiunta Chicchi', 'beans', 1);
+        });
+
+        // ============================================================
+        // Init
+        // ============================================================
+        updateOnlineStatus();
+        updateQueueBadge();
+        renderStats();
+
+        // Retry queue every 30 seconds
+        setInterval(() => {
+            if (navigator.onLine) flushQueue();
+        }, 30000);
+    </script>
+</body>
+</html>
