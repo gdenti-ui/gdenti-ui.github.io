@@ -689,9 +689,17 @@
             inactivityTimer = setTimeout(showScreensaver, INACTIVITY_TIMEOUT);
         }
 
-        // Nascondi screensaver al click/touch
-        screensaver.addEventListener('click', hideScreensaver);
-        screensaver.addEventListener('touchstart', hideScreensaver);
+        // Nascondi screensaver al click/touch (blocca propagazione per evitare click sui bottoni sotto)
+        screensaver.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            hideScreensaver();
+        });
+        screensaver.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            hideScreensaver();
+        }, { passive: false });
 
         // Reset timer su qualsiasi interazione
         ['click', 'touchstart', 'mousemove', 'keydown'].forEach(event => {
